@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>108課綱 英文單字練習（單題顯示｜最多250題）</title>
+<style>
+body{font-family:system-ui,"Microsoft JhengHei",sans-serif;background:#0b1020;color:#e9ecf8;margin:0}
+header{padding:16px;background:#111734}
+h1{font-size:20px;margin:0}
+.panel{background:#111734;padding:16px;border-radius:10px;margin:10px}
+.btn{padding:8px 12px;border-radius:8px;border:none;cursor:pointer}
+.btn.secondary{background:#2a3585;color:#fff}
+.btn.warn{background:#ffcc66}
+.btn.bad{background:#f7768e;color:#fff}
+.qcard{background:#0f1533;padding:12px;border-radius:10px;margin:10px;border:1px solid #232c63}
+.choice{padding:8px;border:1px solid #232c63;border-radius:8px;margin:6px 0;cursor:pointer}
+.choice.correct{border-color:#55d187;background:#0c1f18}
+.choice.wrong{border-color:#f7768e;background:#271018}
+.explain{display:none;background:#0f1533;padding:8px;margin-top:8px;border-left:3px solid #2e4284;border-radius:6px}
+.explain.show{display:block}
+.progress{height:8px;background:#10163a;border-radius:4px;overflow:hidden;margin-top:8px}
+.bar{height:100%;width:0%;background:linear-gradient(90deg,#7aa2f7,#55d187)}
+.small{opacity:.85;font-size:13px}
+</style>
+</head>
+<body>
+<header><h1>108課綱 英文單字練習｜Vocabulary（單題顯示｜最多250題）</h1></header>
+
+<div class="panel">
+  <span>模式 / Mode：
+    <select id="mode">
+      <option value="practice">練習（立即顯示解析 / Show explanation immediately）</option>
+      <option value="exam">模擬測驗（交卷後顯示解析 / Show explanations after submit）</option>
+    </select>
+  </span>
+  <span style="margin-left:8px">題數 / Count：
+    <input id="count" type="number" min="10" max="250" value="20" style="width:80px">
+  </span>
+  <button class="btn" id="startBtn">開始練習 / Start</button>
+  <button class="btn bad" id="clearBtn">清除進度 / Clear</button>
+  <div class="progress"><div class="bar" id="progressBar"></div></div>
+  <div class="small">進度 / Progress：<span id="progressText">尚未開始 / Not started</span> ｜ 正確 Correct：<b id="okCount">0</b> ｜ 錯誤 Wrong：<b id="badCount">0</b></div>
+</div>
+
+<div id="questionArea"></div>
+
+<div class="panel" id="navArea" style="display:none">
+  <button class="btn secondary" id="prevBtn">上一題 / Prev</button>
+  <button class="btn secondary" id="nextBtn">下一題 / Next</button>
+  <button class="btn warn" id="submitBtn">交卷 / Submit</button>
+</div>
+
+<div id="resultArea" style="display:none;margin:10px">
+  <div class="qcard">
+    <h3 style="margin:0 0 8px">成績與解析 / Score & Review</h3>
+    <div id="scoreLine" class="small"></div>
+  </div>
+  <div id="reviewArea"></div>
+</div>
+
+<!-- ====== 題庫資料（示範）======
+  格式：{ word, pos, zh, example }
+  你要 250 題 → 直接把下面陣列替換成 250 條即可
+-->
+<script id="vocab-data" type="application/json">
+[
+  {"word":"abandon","pos":"v.","zh":"放棄；遺棄","example":"He abandoned the project due to lack of funds.（因資金不足而放棄計畫）"},
+  {"word":"ability","pos":"n.","zh":"能力","example":"She has the ability to solve complex problems.（她有能力解決複雜問題）"},
+  {"word":"abundant","pos":"adj.","zh":"豐富的","example":"This area has abundant natural resources.（資源豐富）"},
+  {"word":"accurate","pos":"adj.","zh":"準確的","example":"We need accurate data for the report.（報告需要準確數據）"},
+  {"word":"achieve","pos":"v.","zh":"達成","example":"He achieved his goal of studying abroad.（達成留學目標）"},
+  {"word":"adapt","pos":"v.","zh":"適應","example":"We must adapt to climate change.（必須適應氣候變遷）"},
+  {"word":"adequate","pos":"adj.","zh":"足夠的","example":"The food supply is adequate for everyone.（食物足夠）"},
+  {"word":"affect","pos":"v.","zh":"影響","example":"Lack of sleep affects your performance.（影響表現）"},
+  {"word":"alternative","pos":"n./adj.","zh":"替代方案；替代的","example":"We need an alternative plan.（需要替代方案）"},
+  {"word":"ambitious","pos":"adj.","zh":"有野心的","example":"She is ambitious to become a doctor.（她立志成為醫生）"},
+  {"word":"analyze","pos":"v.","zh":"分析","example":"Scientists analyze data carefully.（科學家仔細分析數據）"},
+  {"word":"annual","pos":"adj.","zh":"每年的；年度的","example":"The school holds an annual fair.（學校每年舉辦園遊會）"},
+  {"word":"anticipate","pos":"v.","zh":"預期","example":"We anticipate heavy traffic.（預期會塞車）"},
+  {"word":"appropriate","pos":"adj.","zh":"適當的","example":"Dress appropriately for the interview.（面試穿著要得體）"},
+  {"word":"assume","pos":"v.","zh":"假設；以為","example":"Don't assume he knows the answer.（別以為他知道答案）"}
+]
+</script>
+
+<script>
+// 工具
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const $=sel=>document.querySelector(sel);
+
+// 將資料讀出
+function loadVocab(){
+  const raw = document.getElementById('vocab-data').textContent.trim();
+  return JSON.parse(raw);
+}
+
+// 產生一題（英→中或中→英）
+function makeVocabQuestion(pool){
+  const item = pick(pool);
+  const direction = Math.random()<0.5 ? 'en2zh' : 'zh2en';
+  let stem, correct, distractorGen;
+
+  if(direction==='en2zh'){
+    stem = `【英→中】<br><b>${item.word}</b>（${item.pos}） 的中文意思是？`;
+    correct = item.zh;
+    distractorGen = ()=> pick(pool.filter(x=>x.zh!==correct)).zh;
+  }else{
+    stem = `【中→英】<br><b>${item.zh}</b> 的英文是哪個？（請選字形與詞性相符）`;
+    correct = `${item.word}（${item.pos}）`;
+    distractorGen = ()=>{
+      const d = pick(pool.filter(x=>x.word!==item.word));
+      return `${d.word}（${d.pos}）`;
+    };
+  }
+
+  const set = new Set([correct]);
+  while(set.size<4){ set.add(distractorGen()); }
+  const choices = shuffle(Array.from(set));
+  const answer = choices.indexOf(correct);
+
+  const explain = `詞性/Part of speech：<b>${item.pos}</b><br>例句/Example：${item.example}<br>中文：${item.zh}`;
+  return { stem, choices, answer, explanation: explain };
+}
+
+// 狀態
+let bank=[], idx=0, ok=0, bad=0, done=false;
+
+function renderOne(){
+  const q = bank[idx];
+  const area = $('#questionArea');
+  area.innerHTML = '';
+  const card = document.createElement('div');
+  card.className='qcard';
+  card.innerHTML = `
+    <div class="small">第 ${idx+1} / ${bank.length} 題</div>
+    <div style="margin:6px 0 10px">${q.stem}</div>
+    <div id="choices"></div>
+    <div class="explain" id="explain">${q.explanation}</div>`;
+  const ch = card.querySelector('#choices');
+
+  q.choices.forEach((c,j)=>{
+    const div=document.createElement('div');
+    div.className='choice'; div.dataset.choice=j; div.innerHTML=c;
+    ch.appendChild(div);
+  });
+
+  // 回填作答
+  if(q.userAnswered!==undefined){
+    const items=ch.querySelectorAll('.choice');
+    items.forEach((el,j)=>{
+      if(j===q.answer) el.classList.add('correct');
+      if(j===q.userAnswered && j!==q.answer) el.classList.add('wrong');
+    });
+    $('#explain').classList.add('show');
+  }
+  area.appendChild(card);
+  updateProgress();
+}
+
+$('#questionArea').addEventListener('click',e=>{
+  const opt=e.target.closest('.choice'); if(!opt||done) return;
+  const choice=parseInt(opt.dataset.choice,10);
+  const q=bank[idx];
+  // 允許重選：清樣式
+  const items=$('#questionArea').querySelectorAll('.choice');
+  items.forEach(el=>el.classList.remove('correct','wrong'));
+  items.forEach((el,j)=>{ if(j===q.answer) el.classList.add('correct'); if(j===choice&&j!==q.answer) el.classList.add('wrong'); });
+
+  if(q.userAnswered===undefined){ if(choice===q.answer) ok++; else bad++; }
+  else{ if(q.userAnswered===q.answer) ok--; else bad--; if(choice===q.answer) ok++; else bad++; }
+  q.userAnswered=choice;
+
+  if($('#mode').value==='practice'){ $('#explain').classList.add('show'); }
+  updateProgress();
+});
+
+function updateProgress(){
+  const answered = bank.filter(q=>q.userAnswered!==undefined).length;
+  $('#okCount').textContent=ok; $('#badCount').textContent=bad;
+  $('#progressBar').style.width = (answered/bank.length*100)+'%';
+  $('#progressText').textContent = `已作答 ${answered}/${bank.length}`;
+}
+
+// 控制
+$('#startBtn').addEventListener('click', ()=>{
+  const pool=loadVocab();
+  const N=Math.min(Math.max(parseInt($('#count').value)||20,10),250);
+  bank = Array.from({length:N}, ()=>makeVocabQuestion(pool));
+  idx=0; ok=0; bad=0; done=false;
+  $('#navArea').style.display='block'; $('#resultArea').style.display='none';
+  renderOne();
+});
+$('#prevBtn').addEventListener('click', ()=>{ if(idx>0){idx--; renderOne();} });
+$('#nextBtn').addEventListener('click', ()=>{ if(idx<bank.length-1){idx++; renderOne();} });
+$('#submitBtn').addEventListener('click', ()=>{
+  if(done) return; done=true;
+  const score=Math.round(100*ok/bank.length);
+  $('#scoreLine').innerHTML=`本次成績 Score：<b>${score}</b>（正確 ${ok}／錯誤 ${bad}／共 ${bank.length} 題）`;
+  const review=$('#reviewArea'); review.innerHTML='';
+  bank.forEach((q,i)=>{
+    if(q.userAnswered===q.answer) return;
+    const div=document.createElement('div'); div.className='qcard';
+    const ua=(q.userAnswered===undefined)?'未作答 / N/A':q.choices[q.userAnswered];
+    div.innerHTML=`<div class="small">第 ${i+1} 題</div><div><b>你的作答 Your answer：</b>${ua}<br><b>正確 Correct：</b>${q.choices[q.answer]}</div><div class="explain show" style="margin-top:6px">${q.explanation}</div>`;
+    review.appendChild(div);
+  });
+  $('#resultArea').style.display='block';
+});
+$('#clearBtn').addEventListener('click', ()=>{
+  bank=[]; idx=0; ok=0; bad=0; done=false;
+  $('#questionArea').innerHTML=''; $('#navArea').style.display='none'; $('#resultArea').style.display='none';
+  $('#progressBar').style.width='0%'; $('#progressText').textContent='尚未開始 / Not started';
+  $('#okCount').textContent='0'; $('#badCount').textContent='0';
+});
+</script>
+</body>
+</html>

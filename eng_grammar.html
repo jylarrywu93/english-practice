@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>108課綱 英文文法練習（單題顯示｜最多250題）</title>
+<style>
+body{font-family:system-ui,"Microsoft JhengHei",sans-serif;background:#0b1020;color:#e9ecf8;margin:0}
+header{padding:16px;background:#111734}
+h1{font-size:20px;margin:0}
+.panel{background:#111734;padding:16px;border-radius:10px;margin:10px}
+.btn{padding:8px 12px;border-radius:8px;border:none;cursor:pointer}
+.btn.secondary{background:#2a3585;color:#fff}
+.btn.warn{background:#ffcc66}
+.btn.bad{background:#f7768e;color:#fff}
+.qcard{background:#0f1533;padding:12px;border-radius:10px;margin:10px;border:1px solid #232c63}
+.choice{padding:8px;border:1px solid #232c63;border-radius:8px;margin:6px 0;cursor:pointer}
+.choice.correct{border-color:#55d187;background:#0c1f18}
+.choice.wrong{border-color:#f7768e;background:#271018}
+.explain{display:none;background:#0f1533;padding:8px;margin-top:8px;border-left:3px solid #2e4284;border-radius:6px}
+.explain.show{display:block}
+.progress{height:8px;background:#10163a;border-radius:4px;overflow:hidden;margin-top:8px}
+.bar{height:100%;width:0%;background:linear-gradient(90deg,#7aa2f7,#55d187)}
+.small{opacity:.85;font-size:13px}
+</style>
+</head>
+<body>
+<header><h1>108課綱 英文文法練習｜Grammar（單題顯示｜最多250題）</h1></header>
+
+<div class="panel">
+  <span>模式 / Mode：
+    <select id="mode">
+      <option value="practice">練習（立即顯示解析 / Show explanation immediately）</option>
+      <option value="exam">模擬測驗（交卷後顯示解析 / After submit）</option>
+    </select>
+  </span>
+  <span style="margin-left:8px">題數 / Count：
+    <input id="count" type="number" min="10" max="250" value="20" style="width:80px">
+  </span>
+  <button class="btn" id="startBtn">開始練習 / Start</button>
+  <button class="btn bad" id="clearBtn">清除進度 / Clear</button>
+  <div class="progress"><div class="bar" id="progressBar"></div></div>
+  <div class="small">進度 / Progress：<span id="progressText">尚未開始 / Not started</span> ｜ 正確：<b id="okCount">0</b> ｜ 錯誤：<b id="badCount">0</b></div>
+</div>
+
+<div id="questionArea"></div>
+
+<div class="panel" id="navArea" style="display:none">
+  <button class="btn secondary" id="prevBtn">上一題 / Prev</button>
+  <button class="btn secondary" id="nextBtn">下一題 / Next</button>
+  <button class="btn warn" id="submitBtn">交卷 / Submit</button>
+</div>
+
+<div id="resultArea" style="display:none;margin:10px">
+  <div class="qcard">
+    <h3 style="margin:0 0 8px">成績與解析 / Score & Review</h3>
+    <div id="scoreLine" class="small"></div>
+  </div>
+  <div id="reviewArea"></div>
+</div>
+
+<!-- ====== 文法題庫示範（請換成你的 250 題） ====== -->
+<script id="gram-data" type="application/json">
+[
+  {
+    "q":"If it ____ tomorrow, we will cancel the picnic.",
+    "A":"rains","B":"rained","C":"has rained","D":"is raining","ans":0,
+    "exp":"未來條件句：If 子句用現在式表示未來可能，主句用 will+V。中文：若明天下雨，我們就取消野餐。"
+  },
+  {
+    "q":"The book ____ on the desk belongs to Kevin.",
+    "A":"lying","B":"lied","C":"lay","D":"lies","ans":0,
+    "exp":"分詞作形容詞：the book lying on the desk（正躺在桌上的書）。中文：放在桌上的那本書是凱文的。"
+  },
+  {
+    "q":"Jenny is interested ____ classical music.",
+    "A":"in","B":"on","C":"at","D":"for","ans":0,
+    "exp":"be interested in + N/V-ing。中文：珍妮對古典音樂有興趣。"
+  },
+  {
+    "q":"Tom had his bike ____ yesterday.",
+    "A":"repair","B":"repaired","C":"repairing","D":"to repair","ans":1,
+    "exp":"使役動詞 have + 受詞 + p.p.（請人把東西修好）。中文：湯姆昨天把腳踏車拿去修。"
+  },
+  {
+    "q":"This is the best movie that I ____ this year.",
+    "A":"saw","B":"have seen","C":"see","D":"had seen","ans":1,
+    "exp":"今年到目前為止 → 現在完成式 have seen。中文：這是我今年看過最好的電影。"
+  },
+  {
+    "q":"Neither Jack nor his friends ____ going to the party.",
+    "A":"is","B":"are","C":"was","D":"be","ans":1,
+    "exp":"就近原則：nor 後的複數 friends 決定動詞用 are。中文：傑克和他的朋友都不去派對。"
+  },
+  {
+    "q":"It is important ____ on time.",
+    "A":"arrive","B":"to arrive","C":"arriving","D":"arrived","ans":1,
+    "exp":"It is + adj. + to V. 不定詞作主詞。中文：準時很重要。"
+  },
+  {
+    "q":"The man ____ you talked to is my uncle.",
+    "A":"that","B":"which","C":"whom","D":"whose","ans":2,
+    "exp":"介系詞後接 whom；可口語用 who。中文：你剛才跟他說話的那位先生是我叔叔。"
+  },
+  {
+    "q":"Not only ____ the exam, but he also got the highest score.",
+    "A":"did he pass","B":"he passed","C":"has he passed","D":"he has passed","ans":0,
+    "exp":"Not only 置句首 → 倒裝：助動詞 + 主詞 + 原形動詞。中文：他不僅通過考試，還拿到最高分。"
+  },
+  {
+    "q":"There ____ a lot of homework to do tonight.",
+    "A":"is","B":"are","C":"be","D":"has","ans":0,
+    "exp":"There is/are 結構不可數/單數名詞用 is。中文：今晚有許多功課要做（不可數）。"
+  }
+]
+</script>
+
+<script>
+// 工具
+const $=sel=>document.querySelector(sel);
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+function loadGrammar(){ return JSON.parse(document.getElementById('gram-data').textContent.trim()); }
+
+// 由資料做題目物件
+function makeGramQuestion(row){
+  const choices=[row.A,row.B,row.C,row.D];
+  const answer=row.ans;
+  return {
+    stem:`【單句文法｜Grammar】<br>${row.q}<br><span class="small">(請選最適當選項 / Choose the best answer)</span>`,
+    choices, answer,
+    explanation:`解析 / Explanation：${row.exp}`
+  };
+}
+
+// 狀態
+let bank=[], idx=0, ok=0, bad=0, done=false;
+
+function renderOne(){
+  const q=bank[idx];
+  const area=$('#questionArea'); area.innerHTML='';
+  const card=document.createElement('div'); card.className='qcard';
+  card.innerHTML=`<div class="small">第 ${idx+1} / ${bank.length} 題</div>
+  <div style="margin:6px 0 10px">${q.stem}</div>
+  <div id="choices"></div>
+  <div class="explain" id="explain">${q.explanation}</div>`;
+  const ch=card.querySelector('#choices');
+
+  q.choices.forEach((c,j)=>{
+    const d=document.createElement('div'); d.className='choice'; d.dataset.choice=j; d.textContent=c; ch.appendChild(d);
+  });
+
+  if(q.userAnswered!==undefined){
+    const items=ch.querySelectorAll('.choice');
+    items.forEach((el,j)=>{ if(j===q.answer) el.classList.add('correct'); if(j===q.userAnswered && j!==q.answer) el.classList.add('wrong'); });
+    $('#explain').classList.add('show');
+  }
+  area.appendChild(card);
+  updateProgress();
+}
+
+$('#questionArea').addEventListener('click',e=>{
+  const opt=e.target.closest('.choice'); if(!opt||done) return;
+  const choice=parseInt(opt.dataset.choice,10);
+  const q=bank[idx]; const items=$('#questionArea').querySelectorAll('.choice');
+  items.forEach(el=>el.classList.remove('correct','wrong'));
+  items.forEach((el,j)=>{ if(j===q.answer) el.classList.add('correct'); if(j===choice && j!==q.answer) el.classList.add('wrong'); });
+
+  if(q.userAnswered===undefined){ if(choice===q.answer) ok++; else bad++; }
+  else{ if(q.userAnswered===q.answer) ok--; else bad--; if(choice===q.answer) ok++; else bad++; }
+  q.userAnswered=choice;
+
+  if($('#mode').value==='practice'){ $('#explain').classList.add('show'); }
+  updateProgress();
+});
+
+function updateProgress(){
+  const answered = bank.filter(q=>q.userAnswered!==undefined).length;
+  $('#okCount').textContent=ok; $('#badCount').textContent=bad;
+  $('#progressBar').style.width=(answered/bank.length*100)+'%';
+  $('#progressText').textContent=`已作答 ${answered}/${bank.length}`;
+}
+
+// 控制
+$('#startBtn').addEventListener('click', ()=>{
+  const data=loadGrammar(); const N=Math.min(Math.max(parseInt($('#count').value)||20,10),250);
+  const picked = shuffle([...data]).slice(0,N).map(makeGramQuestion);
+  bank=picked; idx=0; ok=0; bad=0; done=false;
+  $('#navArea').style.display='block'; $('#resultArea').style.display='none';
+  renderOne();
+});
+$('#prevBtn').addEventListener('click', ()=>{ if(idx>0){idx--; renderOne();} });
+$('#nextBtn').addEventListener('click', ()=>{ if(idx<bank.length-1){idx++; renderOne();} });
+$('#submitBtn').addEventListener('click', ()=>{
+  if(done) return; done=true;
+  const score=Math.round(100*ok/bank.length);
+  $('#scoreLine').innerHTML=`本次成績 Score：<b>${score}</b>（正確 ${ok}／錯誤 ${bad}／共 ${bank.length} 題）`;
+  const review=$('#reviewArea'); review.innerHTML='';
+  bank.forEach((q,i)=>{
+    if(q.userAnswered===q.answer) return;
+    const ua=(q.userAnswered===undefined)?'未作答 / N/A':q.choices[q.userAnswered];
+    const div=document.createElement('div'); div.className='qcard';
+    div.innerHTML=`<div class="small">第 ${i+1} 題</div>
+      <div><b>你的作答：</b>${ua} ｜ <b>正確：</b>${q.choices[q.answer]}</div>
+      <div class="explain show" style="margin-top:6px">${q.explanation}</div>`;
+    review.appendChild(div);
+  });
+  $('#resultArea').style.display='block';
+});
+$('#clearBtn').addEventListener('click', ()=>{
+  bank=[]; idx=0; ok=0; bad=0; done=false;
+  $('#questionArea').innerHTML=''; $('#navArea').style.display='none'; $('#resultArea').style.display='none';
+  $('#progressBar').style.width='0%'; $('#progressText').textContent='尚未開始 / Not started';
+  $('#okCount').textContent='0'; $('#badCount').textContent='0';
+});
+</script>
+</body>
+</html>
